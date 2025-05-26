@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Timesheet</title>
+    <!-- Add SheetJS library -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #0066cc;
+            --secondary: #f8f9fa;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --light: #f8f9fa;
+            --dark: #343a40;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: var(--dark);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .form-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        select,
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        .department-specific-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--secondary);
+            position: sticky;
+            top: 0;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .hour-input {
+            width: 60px;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .cost-cell {
+            background-color: #f5f5f5;
+            color: #666;
+            font-style: italic;
+        }
+
+        .success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .warning {
+            background-color: var(--warning);
+        }
+
+        .budget-meter {
+            height: 8px;
+            background-color: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .budget-fill {
+            height: 100%;
+            background-color: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .budget-danger {
+            background-color: var(--danger);
+        }
+
+        .budget-warning {
+            background-color: var(--warning);
+        }
+
+        .budget-success {
+            background-color: var(--success);
+        }
+
+        .actions {
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0055aa;
+        }
+
+        .info-panel {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        .info-card {
+            background-color: var(--secondary);
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .info-card h3 {
+            margin-top: 0;
+            font-size: 16px;
+        }
+
+        .info-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .month-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .month-btn {
+            background-color: var(--secondary);
+            border: 1px solid #ddd;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 5px;
+        }
+
+        .month-btn.active {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--success);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        .month-selection-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .month-checkbox-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .month-checkbox-label {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background-color: var(--secondary);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .month-checkbox-label:hover {
+            background-color: #e9ecef;
+        }
+
+        .month-checkbox {
+            margin-right: 8px;
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Custom checkbox styling */
+        .month-checkbox-label input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+
+        /* Project selection panels */
+        .project-selection-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .project-category {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .project-category-header {
+            background-color: var(--secondary);
+            padding: 10px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .project-category-header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .project-category-body {
+            padding: 15px;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .project-category.active .project-category-body {
+            display: block;
+        }
+
+        .subproject-item {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .subproject-item input[type="checkbox"] {
+            margin-right: 10px;
+            width: auto;
+        }
+
+        .subproject-label {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .filter-actions {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .filter-btn {
+            margin-right: 10px;
+        }
+
+        /* Toggle switch for showing/hiding projects */
+        .show-selected-only {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            margin-left: 10px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--primary);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Badge indicating selected items */
+        .selected-badge {
+            display: inline-block;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Interactive Project Timesheet</h1>
+        </header>
+
+        <div class="form-controls">
+            <div class="form-group">
+                <label for="department">Department</label>
+                <select id="department">
+                    <option value="">Select Department</option>
+                    <option value="ESI TE">ESI TE</option>
+                    <option value="ESI TR">ESI TR</option>
+                    <option value="ESI TW">ESI TW</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="employee">Employee</label>
+                <select id="employee" disabled>
+                    <option value="">Select Department First</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="active-month">Current Month</label>
+                <select id="active-month">
+                    <option value="0">January</option>
+                    <option value="1">February</option>
+                    <option value="2">March</option>
+                    <option value="3">April</option>
+                    <option value="4">May</option>
+                    <option value="5">June</option>
+                    <option value="6">July</option>
+                    <option value="7">August</option>
+                    <option value="8">September</option>
+                    <option value="9">October</option>
+                    <option value="10">November</option>
+                    <option value="11">December</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Project selection panel -->
+        <div id="project-selection-panel" class="project-selection-panel" style="display: none;">
+            <h2>Project Selection</h2>
+            <div id="project-categories-container">
+                <!-- Project categories will be loaded here -->
+            </div>
+
+            <div class="show-selected-only">
+                <span>Show only selected projects</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-selected-only">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="filter-actions">
+                <button id="select-all-btn" class="filter-btn">Select All</button>
+                <button id="clear-selection-btn" class="filter-btn">Clear Selection</button>
+                <button id="apply-filter-btn" class="filter-btn">Apply Selection</button>
+            </div>
+        </div>
+
+        <div class="month-selection-panel">
+            <div class="form-group">
+                <label>Select Months to Display</label>
+                <div class="month-checkbox-container" id="month-checkboxes">
+                    <!-- Month checkboxes will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>Total Hours</h3>
+                    <div class="info-value" id="total-hours">0</div>
+                    <div class="budget-meter">
+                        <div class="budget-fill" id="hours-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>Monthly Target</h3>
+                    <div class="info-value">160 hours</div>
+                </div>
+
+                <div class="info-card">
+                    <h3>Current Month</h3>
+                    <div class="info-value" id="current-month-display">January</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="timesheet-table">
+                <thead id="timesheet-header">
+                    <tr>
+                        <th style="min-width: 300px;">Project</th>
+                        <th>Budget</th>
+                        <th>Remaining</th>
+                    </tr>
+                </thead>
+                <tbody id="project-rows">
+                    <!-- Projects will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="actions">
+            <button id="submit-timesheet">Submit Timesheet</button>
+        </div>
+    </div>
+
+    <div class="notification" id="notification">
+        Timesheet has been saved successfully!
+    </div>
+
+    <script>
+        // Project data structure with main titles and subprojects
+        const projectCategories = {
+            "ESI TE": [
+                {
+                    title: "CST/IE-Serviceleistung (Verrechnung gegen SCA)",
+                    subprojects: [
+                        { id: "ESITE-SCA-1", name: "Entlastung gegen \"SCA Prov. & Develop. of methodoloy\"", budget: 50000 },
+                        { id: "ESITE-SCA-2", name: "Entlastung gegen \"SCA Def. of standards & Prov. of Inform.\"", budget: 60000 },
+                        { id: "ESITE-SCA-3", name: "Entlastung gegen \"SCA Infrastr. Techn. & Energy Mgmt.\"", budget: 70000 },
+                        { id: "23.E01", name: "23.E01_Guid Doc G-GD-ENY 102 (Energy Concepts)", budget: 250000 },
+                        { id: "23.E21", name: "23.E21_IPE-Methodology (transfer & training to region)", budget: 180000 },
+                        { id: "23.E22", name: "23.E22_Guidance Documents G-GD-ENY 103 (Utility Reliability)", budget: 200000 },
+                        { id: "23.E26", name: "23.E26_Technische Richtlinien \"Power Supply\" (Versorgungszuverlässigkeit,..)", budget: 150000 },
+                        { id: "23.E27", name: "23.E27_Weiterentwicklung Methodenkompetenz (URC / IPE Utility Reliability Check / Infrastructure Performance Evaluation)", budget: 210000 },
+                        { id: "23.E08", name: "23.E08_ Power Plant Optimization Tool CDE - ESI/T", budget: 175000 },
+                        { id: "23.E05", name: "23.E05_Beratung Energielieferverträge (Unterstützung Einkauf, etc.)", budget: 160000 },
+                        { id: "23.E20", name: "23.E20_Energiekonzepte Ansprechpartner, Energy Supply (Kurzberatung)", budget: 190000 },
+                        { id: "23.E24", name: "23.E24_Troubleshooting (ad hoc Unterstützung standards, guidelines, etc)", budget: 140000 },
+                        { id: "23.E09", name: "23.E09_Global Expert Community (Power & Steam)", budget: 225000 },
+                        { id: "23.E11", name: "23.E11_Energie- & Klimapolitik, Energiegesetzgebung (Unterstützung COM GE)", budget: 225000 },
+                        { id: "23.E11b", name: "23.E11b_Verband VIK Ausschuss Technik, VGB, European WG", budget: 225000 },
+                        { id: "23.E12", name: "23.E12_Neue Technologie: Batterietechnologie, Supraleiter, NS-Batt., neue NS-LS", budget: 225000 },
+                        { id: "23.E06", name: "23.E06_neue Technologien \"Energiekonzepte\",\" Powersupply\" (Wahrnehmung Radarfunktion, Bewertung)", budget: 225000 },
+                        { id: "23.E28", name: "23.E28_Projekte \"Energy Supply\" (Initiierung)", budget: 225000 },
+                        { id: "23.E03", name: "23.E03_Verrechnungs-, & Kalkulationspreise (Analyse, Festlegung,..)", budget: 225000 },
+                        { id: "23.E04", name: "23.E04_Energie Preise (Dampf/Strom...) - Methodik / Bereitstellung für Standorte", budget: 225000 },
+                        { id: "23.E29", name: "23.E29_Alternatives to fossil steam generation: dampferzeugung mittels Wärmepumpen", budget: 225000 },
+                        { id: "23.E30", name: "23.E30 neue Technologien \"Batterietechnologien\": DC Netzproduktion LU", budget: 225000 },
+                        { id: "23.E34", name: "23.E34 Global Safety Concepts P2H", budget: 225000 },
+                        { id: "23.E35", name: "23.E35 Global technology developments, expertise, consulting", budget: 225000 }
+                    ]
+                },
+                {
+                    title: "Tätigkeiten für ES & ESI/E am Standort LU (Pauschale Entlastung 50% Strom, 50% Dampf)",
+                    subprojects: [
+                        { id: "ESITE-ESLU-1", name: "Pauschale Entlastung Dampf (50%)", budget: 100000 },
+                        { id: "ESITE-ESLU-3", name: "Pauschale Entlastung Strom (50%)", budget: 100000 },
+                        { id: "ESITE-ESLU-5", name: "Beratung ESI (Bespr; Anfragen, Fachreferat ..) CST/IE", budget: 80000 },
+                        { id: "ESITE-ESLU-7", name: "Power to X - CST/IE", budget: 120000 }
+                    ]
+                },
+                {
+                    title: "Verrechnung an ESI sonstige",
+                    subprojects: [
+                        { id: "ESITE-ESIS-1", name: "ESI/L E-Boiler Ludwigshafen - Feasibility Study (abgeschlossen Feb 2025)", budget: 180000 },
+                        { id: "ESITE-ESIS-2", name: "ESI/L E-Boiler Ludwigshafen - Vorplanungskosten bis initial Approval", budget: 200000 },
+                        { id: "ESITE-ESIS-3", name: "ESI/L G E O T H E R M I E", budget: 300000 },
+                        { id: "ESITE-ESIS-4", name: "ESI/L Senior Project Energy Transformation LU", budget: 250000 }
+                    ]
+                },
+                {
+                    title: "Verrechnung ausserhalb CS/T Allgemein (innerhalb BASF SE)",
+                    subprojects: [
+                        { id: "ESITE-VERG-1", name: "GHG Emission Steering", budget: 150000 },
+                        { id: "ESITE-VERG-2", name: "Open Loop Heat Pump SC2 - TM", budget: 180000 },
+                        { id: "ESITE-VERG-3", name: "ED Plant of the Future: Roadmap to ZeroCo2 --> ESI/TE-Services", budget: 200000 },
+                        { id: "ESITE-VERG-4", name: "Grenzach TES Steam OPEX optimization", budget: 160000 },
+                        { id: "ESITE-VERG-5", name: "R&D Power2Heat Technologies", budget: 220000 },
+                        { id: "ESITE-VERG-6", name: "R&D Engineering Support for BASF Stationary Energy Storage GmbH (BSES)", budget: 190000 },
+                        { id: "ESITE-VERG-7", name: "CCS Carbon Capture Storage", budget: 210000 },
+                        { id: "ESITE-VERG-8", name: "IP Measures", budget: 175000 },
+                        { id: "ESITE-VERG-9", name: "Grüne Dampfversorgung/OASE KWN RVA", budget: 195000 },
+                        { id: "ESITE-VERG-10", name: "KTC Simba 3 ESI/TE Wärmeintegration", budget: 185000 }
+                    ]
+                },
+                {
+                    title: "Ohne Gegenbuchung",
+                    subprojects: [
+                        { id: "OG-1-TE", name: "Projekt-Puffer (Kontierung folgt noch)", budget: 50000 },
+                        { id: "OG-2-TE", name: "Keiner Kontierung direkt zuordenbare Stunden (AGs Employee Voices, VL)", budget: 40000 },
+                        { id: "OG-3-TE", name: "Transformation Journey Global Technology Infrastructure", budget: 75000 },
+                        { id: "OG-4-TE", name: "EHS-Themen (Ohne Kontierung => SiBa, SAS, EHS-Quervernetzung, UWEB,..)", budget: 60000 },
+                        { id: "OG-5-TE", name: "Urlaub / Krankheit / Corona Kita-Tage", budget: 100000 },
+                        { id: "OG-6-TE", name: "Feiertag (an einem Werktag) in Zeile 7 berücksichtigt", budget: 50000 }
+                    ]
+                }
+            ],
+            "ESI TR": [
+                {
+                    title: "CST/IR-Serviceleistung (Verrechnung gegen SCA)",
+                    subprojects: [
+                        { id: "ESITR-SCA-1", name: "Entlastung gegen \"SCA Prov. & Develop. of methodoloy\"", budget: 50000 },
+                        { id: "ESITR-SCA-2", name: "Entlastung gegen \"SCA Def. of standards & Prov. of Inform.\"", budget: 60000 },
+                        { id: "ESITR-SCA-3", name: "Entlastung gegen \"SCA Infrastr. Techn. & Energy Mgmt.\"", budget: 70000 },
+                        { id: "23.R02", name: "23.R02_Troubleshooting (ad-hoc unterstützung standards, guidelines, etc)", budget: 220000 },
+                        { id: "23.R03", name: "23.R03_Bewertung neue Technologie (Incineration, Disposal)", budget: 190000 },
+                        { id: "23.R04", name: "23.R04_Advocacy (Beurteilung gesetzlicher Neuregelungen)", budget: 180000 },
+                        { id: "23.R05", name: "23.R05_Beratung Entsorgungskonzepte (Vergleich verschiedener Konzepte hinsicht. Wirtschaftlichkeit, Verfügbarkeit)", budget: 150000 },
+                        { id: "23.R06", name: "23.R06_Globaler Erfahrungsaustausch Abfallverbrennung und -beseitigung ()", budget: 160000 },
+                        { id: "23.R09", name: "23.R09_Projekte \"Incineration & Disposal Technology\" (Initierung)", budget: 210000 },
+                        { id: "23.R10", name: "23.R10_Globales Anlagensicherheitskonzept RVA", budget: 175000 },
+                        { id: "23.R11", name: "23.R11_Global technology developments, expertise, consulting", budget: 195000 },
+                        { id: "23.R12", name: "23.R12_Strategie Grey – Blue – Green", budget: 165000 },
+                        { id: "23.R13", name: "23.R13 Corporate Strategy - Sustainability Transformation", budget: 185000 }
+                    ]
+                },
+                {
+                    title: "Tätigkeiten für ESI/A allgem. (Entlastung 100% ESI/AR)",
+                    subprojects: [
+                        { id: "ESITR-ESIA-1", name: "freies Budget (Def. neuer Unterpositionen sowie Zuordnung Budget durch Gruppenleiter)", budget: 75000 },
+                        { id: "ESITR-ESIA-2", name: "Investitionsstrategie Europa", budget: 120000 },
+                        { id: "ESITR-ESIA-3", name: "Technische Auditierung von Entsorgern", budget: 90000 },
+                        { id: "ESITR-ESIA-4", name: "Unterstützung von Vertragsverhandlungen", budget: 85000 },
+                        { id: "ESITR-ESIA-5", name: "Abfälle European Waste Management", budget: 110000 },
+                        { id: "ESITR-ESIA-6", name: "Studien, Studie Greenback", budget: 130000 },
+                        { id: "ESITR-ESIA-7", name: "Lobby-Arbeit Lu (PG-Verbrennung, BREF-Arbeitsgruppe)", budget: 95000 }
+                    ]
+                },
+                {
+                    title: "Verrechnung an ESI sonstige",
+                    subprojects: [
+                        { id: "ESITR-ESIS-1", name: "Klärschlammverbrennung LU", budget: 200000 }
+                    ]
+                },
+                {
+                    title: "Verrechnung ausserhalb CS/T Allgemein (innerhalb BASF SE)",
+                    subprojects: [
+                        { id: "ESITR-VERG-1", name: "KTC Poetry 2.0", budget: 170000 },
+                        { id: "ESITR-VERG-2", name: "SCOORE - Syngas aus CO2 Recycling", budget: 190000 },
+                        { id: "ESITR-VERG-3", name: "Machbarkeitsstudie Schlammentsorgung in der RVA", budget: 150000 },
+                        { id: "ESITR-VERG-4", name: "Bewertung Szenarien Wirtschaftlichkeit - Schlammbehandlungsanlage für Abfälle", budget: 160000 },
+                        { id: "ESITR-VERG-5", name: "Photochemische Aminierung", budget: 180000 },
+                        { id: "ESITR-VERG-6", name: "Durchführung der RBM für Rückstandsverbrennung", budget: 170000 },
+                        { id: "ESITR-VERG-7", name: "Studie Schlammbehandlung durch externen Dienstleister (bis 31.12.2024)", budget: 155000 },
+                        { id: "ESITR-VERG-8", name: "Projekt C1 feedstocks benchmarking_ Support KTC Fermentation", budget: 145000 },
+                        { id: "ESITR-VERG-9", name: "N800 – Unterstützung RBM Analyse – RVA – 2024", budget: 165000 },
+                        { id: "ESITR-VERG-10", name: "MeOH zu C16 fatty alcohol", budget: 175000 }
+                    ]
+                },
+                {
+                    title: "Ohne Gegenbuchung",
+                    subprojects: [
+                        { id: "OG-1-TR", name: "Projekt-Puffer (Kontierung folgt noch)", budget: 50000 },
+                        { id: "OG-2-TR", name: "Keiner Kontierung direkt zuordenbare Stunden (AGs Employee Voices, VL)", budget: 40000 },
+                        { id: "OG-3-TR", name: "Transformation Journey Global Technology Infrastructure", budget: 75000 },
+                        { id: "OG-4-TR", name: "EHS-Themen (Ohne Kontierung => SiBa, SAS, EHS-Quervernetzung, UWEB,..)", budget: 60000 },
+                        { id: "OG-5-TR", name: "Urlaub / Krankheit / Corona Kita-Tage", budget: 100000 },
+                        { id: "OG-6-TR", name: "Feiertag (an einem Werktag) in Zeile 7 berücksichtigt", budget: 50000 }
+                    ]
+                }
+            ],
+            "ESI TW": [
+                {
+                    title: "CST/IW-Serviceleistung (Verrechnung gegen SCA)",
+                    subprojects: [
+                        { id: "ESITW-SCA-1", name: "Entlastung gegen \"SCA Prov. & Develop. of methodoloy\"", budget: 50000 },
+                        { id: "ESITW-SCA-2", name: "Entlastung gegen \"SCA Def. of standards & Prov. of Inform.\"", budget: 60000 },
+                        { id: "ESITW-SCA-3", name: "Entlastung gegen \"SCA Infrastr. Techn. & Energy Mgmt.\"", budget: 70000 },
+                        { id: "23.W01", name: "23.W01_Creation of best practice documents and know-how documentation", budget: 200000 },
+                        { id: "23.W02", name: "23.W02_Valuate of new technologies on water supply", budget: 180000 },
+                        { id: "23.W03", name: "23.W03_Provision of Expertise for Trouble shooting in case of water supply topics", budget: 195000 },
+                        { id: "23.W04", name: "23.W04_Global Networking, Experience exchange, Lessons Learned", budget: 170000 },
+                        { id: "23.W05", name: "23.W05_Support of emissions reduction projects (Net Zero) with regard of water supply", budget: 210000 },
+                        { id: "23.W10", name: "23.W10_Verband VIK Ausschuss Technik, VGB, European WG", budget: 160000 },
+                        { id: "23.W06ww", name: "23.W06ww_Advice on all technical and economical aspects of wastewater treatment (incl. benchmarking)", budget: 185000 },
+                        { id: "23.W07ww", name: "23.W07ww_Valuate of new technologies to meet future Environmental and Economical challenges on wastewater treatment (Water Reuse, Micropollutants, CO2 Emissions, etc)", budget: 175000 },
+                        { id: "23.W08ww", name: "23.W08ww_Provision of Expertise for Trouble shooting in case of permit excursions or malfunction of wastewater treatment plants", budget: 150000 },
+                        { id: "23.W09ww", name: "23.W09ww_Initiate and support emissions reduction projects with regard of wastewater treatment", budget: 190000 },
+                        { id: "23.W11", name: "23.W11_Global technology developments, expertise, consulting", budget: 200000 }
+                    ]
+                },
+                {
+                    title: "Tätigkeiten für ES & ESI/E am Standort LU (Pauschale Entlastung 50% Strom, 50% Dampf)",
+                    subprojects: [
+                        { id: "ESITW-ESLU-2", name: "Pauschale Entlastung Dampf (50%)", budget: 100000 },
+                        { id: "ESITW-ESLU-4", name: "Pauschale Entlastung Strom (50%)", budget: 100000 },
+                        { id: "ESITW-ESLU-6", name: "Beratung ESI (Bespr; Anfragen, Fachreferat ..) CST/IW", budget: 80000 },
+                        { id: "ESITW-ESLU-8", name: "Power to X - CST/IW", budget: 120000 }
+                    ]
+                },
+                {
+                    title: "Technologieberatung Wasser für ESI/EW (Entlastung 50% VE-Wasser, 50% Kühlwasser)",
+                    subprojects: [
+                        { id: "ESITW-TW-1", name: "Pauschale Entlastung VE-Wasser (50%)", budget: 90000 },
+                        { id: "ESITW-TW-2", name: "Pauschale Entlastung Kühlwasser (50%)", budget: 90000 },
+                        { id: "ESITW-TW-3", name: "Beratung Wasser / Dampf Ludwigshafen", budget: 120000 },
+                        { id: "ESITW-TW-4", name: "Störungsbearbeitung", budget: 85000 },
+                        { id: "ESITW-TW-5", name: "Richtlinien / Werksnomen (LU-S-PE 220, 221,..)", budget: 110000 },
+                        { id: "ESITW-TW-6", name: "Region Lu: Networking, Erfahrungsaustausch, Best Practice, Verbandstätigkeiten (VGB, VDI,..)", budget: 130000 },
+                        { id: "ESITW-TW-7", name: "Wissensmanagement (Anlagenübersicht, Behandlungsprogramme, etc)", budget: 95000 }
+                    ]
+                },
+                {
+                    title: "Technologieberatung Abwasser ESI/AK (Entlastung auf Produkt \"Abwasser\")",
+                    subprojects: [
+                        { id: "ESITW-TA-1", name: "Beratung Kläranlage Lu (inkl. Benchmarking, Statistik,..)", budget: 180000 }
+                    ]
+                },
+                {
+                    title: "Verrechnung an ESI sonstige",
+                    subprojects: [
+                        { id: "ESITW-ESIS-1", name: "Wasserchemische Beratung Kraftwerke", budget: 150000 },
+                        { id: "ESITW-ESIS-2", name: "Sickerwasserbehandlung Flotzgrün", budget: 140000 }
+                    ]
+                },
+                {
+                    title: "Verrechnung ausserhalb CS/T Allgemein (innerhalb BASF SE)",
+                    subprojects: [
+                        { id: "ESITW-VERG-1", name: "ED Plant of the Future: Roadmap to ZeroCo2 --> ESI/TW-Services", budget: 190000 },
+                        { id: "ESITW-VERG-2", name: "BIO-METHANE Plant Ludwigshafen", budget: 180000 },
+                        { id: "ESITW-VERG-3", name: "V302_Service Agreement - Wasserchemischer Support BW für HyCo V302", budget: 170000 },
+                        { id: "ESITW-VERG-4", name: "EMD - Patent Wasserbehandlung mit Narrow Range Polymeren", budget: 160000 },
+                        { id: "ESITW-VERG-5", name: "42.BImSchV – Umsetzung am Standort Ludwigshafen (bis 12.2024)", budget: 150000 },
+                        { id: "ESITW-VERG-6", name: "Studie Speisewasser RVA7/8 in N800", budget: 140000 },
+                        { id: "ESITW-VERG-7", name: "Anaerobe Aufarbeitung von Abwasser in LU", budget: 160000 }
+                    ]
+                },
+                {
+                    title: "Ohne Gegenbuchung",
+                    subprojects: [
+                        { id: "OG-1-TW", name: "Projekt-Puffer (Kontierung folgt noch)", budget: 50000 },
+                        { id: "OG-2-TW", name: "Keiner Kontierung direkt zuordenbare Stunden (AGs Employee Voices, VL)", budget: 40000 },
+                        { id: "OG-3-TW", name: "Transformation Journey Global Technology Infrastructure", budget: 75000 },
+                        { id: "OG-4-TW", name: "EHS-Themen (Ohne Kontierung => SiBa, SAS, EHS-Quervernetzung, UWEB,..)", budget: 60000 },
+                        { id: "OG-5-TW", name: "Urlaub / Krankheit / Corona Kita-Tage", budget: 100000 },
+                        { id: "OG-6-TW", name: "Feiertag (an einem Werktag) in Zeile 7 berücksichtigt", budget: 50000 }
+                    ]
+                }
+            ]
+        };
+
+        // Modified: Store all users' data separately using a map keyed by department and employee
+        let allUserData = {};
+
+        // Current user data - this will point to the specific employee's data
+        let userData = {
+            department: "",
+            employee: "",
+            entries: {}, // Will store entries by month and project
+            displayMonths: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], // Default to show all months
+            selectedProjects: [] // Array of selected project IDs
+        };
+
+        // Global project budgets - shared across all employees
+        let globalProjectBudgets = {};
+
+        // Initialize global project budgets from all department data
+        function initializeGlobalBudgets() {
+            Object.keys(projectCategories).forEach(department => {
+                projectCategories[department].forEach(category => {
+                    category.subprojects.forEach(project => {
+                        globalProjectBudgets[project.id] = {
+                            budget: project.budget,
+                            used: 0
+                        };
+                    });
+                });
+            });
+        }
+
+        // Call this on page load
+        initializeGlobalBudgets();
+
+        // Load global budget data from localStorage if available
+        function loadGlobalBudgets() {
+            const savedBudgets = localStorage.getItem('globalProjectBudgets');
+            if (savedBudgets) {
+                globalProjectBudgets = JSON.parse(savedBudgets);
+            }
+        }
+
+        // Save global budgets to localStorage
+        function saveGlobalBudgets() {
+            localStorage.setItem('globalProjectBudgets', JSON.stringify(globalProjectBudgets));
+        }
+
+        // Try to load any saved global budgets
+        loadGlobalBudgets();
+
+        // Initialize the current date
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        document.getElementById('active-month').value = currentMonth;
+
+        // Constants
+        const HOURLY_RATE = 170; // euros per hour
+        const TARGET_MONTHLY_HOURS = 160; // hours per month
+
+        // DOM Elements
+        const departmentSelect = document.getElementById('department');
+        const employeeSelect = document.getElementById('employee');
+        const activeMonthSelect = document.getElementById('active-month');
+        const projectRows = document.getElementById('project-rows');
+        const submitButton = document.getElementById('submit-timesheet');
+        const totalHoursElement = document.getElementById('total-hours');
+        const hoursFillElement = document.getElementById('hours-fill');
+        const currentMonthDisplay = document.getElementById('current-month-display');
+        const notification = document.getElementById('notification');
+        const monthCheckboxesContainer = document.getElementById('month-checkboxes');
+        const timesheetHeader = document.getElementById('timesheet-header');
+
+        // Project selection elements
+        const projectSelectionPanel = document.getElementById('project-selection-panel');
+        const projectCategoriesContainer = document.getElementById('project-categories-container');
+        const selectAllBtn = document.getElementById('select-all-btn');
+        const clearSelectionBtn = document.getElementById('clear-selection-btn');
+        const applyFilterBtn = document.getElementById('apply-filter-btn');
+        const toggleSelectedOnly = document.getElementById('toggle-selected-only');
+
+        // Set current month name
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        currentMonthDisplay.textContent = monthNames[currentMonth];
+
+        // Helper function to get user data key
+        function getUserDataKey(department, employee) {
+            return `${department}|${employee}`;
+        }
+
+        // Helper function to save current user data to the global map
+        function saveCurrentUserData() {
+            if (userData.department && userData.employee) {
+                const key = getUserDataKey(userData.department, userData.employee);
+                allUserData[key] = JSON.parse(JSON.stringify(userData)); // Deep copy
+            }
+        }
+
+        // Helper function to load user data for a specific employee
+        function loadUserData(department, employee) {
+            const key = getUserDataKey(department, employee);
+
+            // Check if data exists for this user
+            if (allUserData[key]) {
+                userData = JSON.parse(JSON.stringify(allUserData[key])); // Deep copy
+            } else {
+                // Initialize new user data
+                userData = {
+                    department: department,
+                    employee: employee,
+                    entries: {},
+                    displayMonths: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+                    selectedProjects: []
+                };
+            }
+        }
+
+        // Initialize month checkboxes
+        function initMonthCheckboxes() {
+            monthCheckboxesContainer.innerHTML = '';
+
+            monthNames.forEach((month, index) => {
+                const label = document.createElement('label');
+                label.className = 'month-checkbox-label';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'month-checkbox';
+                checkbox.value = index;
+                checkbox.checked = userData.displayMonths.includes(index);
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.checked) {
+                        if (!userData.displayMonths.includes(index)) {
+                            userData.displayMonths.push(index);
+                        }
+                    } else {
+                        userData.displayMonths = userData.displayMonths.filter(m => m !== index);
+                    }
+
+                    // Sort the display months numerically
+                    userData.displayMonths.sort((a, b) => a - b);
+
+                    // Save user preferences
+                    saveCurrentUserData();
+
+                    // Reload the table
+                    loadProjects();
+                });
+
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(month));
+
+                monthCheckboxesContainer.appendChild(label);
+            });
+        }
+
+        // Function to populate project selection panel
+        function populateProjectSelectionPanel() {
+            const department = userData.department;
+            if (!department) return;
+
+            projectCategoriesContainer.innerHTML = '';
+
+            // Get categories for this department
+            const categories = projectCategories[department] || [];
+
+            categories.forEach((category, index) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'project-category';
+                categoryDiv.dataset.categoryIndex = index;
+
+                // Count selected projects in this category
+                const selectedCount = category.subprojects.filter(
+                    subproject => userData.selectedProjects.includes(subproject.id)
+                ).length;
+
+                // Create header
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'project-category-header';
+                headerDiv.innerHTML = `
+                    <h3>${category.title}</h3>
+                    <span class="selected-badge">${selectedCount}/${category.subprojects.length}</span>
+                `;
+                headerDiv.addEventListener('click', () => {
+                    categoryDiv.classList.toggle('active');
+                });
+
+                // Create body with subprojects
+                const bodyDiv = document.createElement('div');
+                bodyDiv.className = 'project-category-body';
+
+                category.subprojects.forEach(subproject => {
+                    const subprojectDiv = document.createElement('div');
+                    subprojectDiv.className = 'subproject-item';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `subproject-${subproject.id}`;
+                    checkbox.value = subproject.id;
+                    checkbox.checked = userData.selectedProjects.includes(subproject.id);
+                    checkbox.addEventListener('change', () => {
+                        if (checkbox.checked) {
+                            if (!userData.selectedProjects.includes(subproject.id)) {
+                                userData.selectedProjects.push(subproject.id);
+                            }
+                        } else {
+                            userData.selectedProjects = userData.selectedProjects.filter(id => id !== subproject.id);
+                        }
+
+                        // Update the selected badge
+                        const newSelectedCount = category.subprojects.filter(
+                            sub => userData.selectedProjects.includes(sub.id)
+                        ).length;
+                        headerDiv.querySelector('.selected-badge').textContent = `${newSelectedCount}/${category.subprojects.length}`;
+
+                        // Save user preferences
+                        saveCurrentUserData();
+                    });
+
+                    const label = document.createElement('label');
+                    label.className = 'subproject-label';
+                    label.htmlFor = `subproject-${subproject.id}`;
+                    label.textContent = subproject.name;
+
+                    subprojectDiv.appendChild(checkbox);
+                    subprojectDiv.appendChild(label);
+                    bodyDiv.appendChild(subprojectDiv);
+                });
+
+                categoryDiv.appendChild(headerDiv);
+                categoryDiv.appendChild(bodyDiv);
+                projectCategoriesContainer.appendChild(categoryDiv);
+            });
+
+            // Show the panel
+            projectSelectionPanel.style.display = 'block';
+        }
+
+        // Event Listeners
+        departmentSelect.addEventListener('change', handleDepartmentChange);
+        employeeSelect.addEventListener('change', handleEmployeeChange);
+        activeMonthSelect.addEventListener('change', handleActiveMonthChange);
+        submitButton.addEventListener('click', handleSubmitTimesheet);
+
+        // Project selection event listeners
+        selectAllBtn.addEventListener('click', handleSelectAll);
+        clearSelectionBtn.addEventListener('click', handleClearSelection);
+        applyFilterBtn.addEventListener('click', handleApplyFilter);
+        toggleSelectedOnly.addEventListener('change', handleApplyFilter);
+
+        // Initialize
+        initMonthCheckboxes();
+
+        function handleDepartmentChange() {
+            const selectedDepartment = departmentSelect.value;
+
+            // Save current user data before switching
+            saveCurrentUserData();
+
+            // Reset employee dropdown
+            employeeSelect.innerHTML = '<option value="">Select Employee</option>';
+            employeeSelect.disabled = !selectedDepartment;
+
+            // Hide project selection panel
+            projectSelectionPanel.style.display = 'none';
+
+            if (!selectedDepartment) {
+                // Clear project rows if no department selected
+                projectRows.innerHTML = '';
+                return;
+            }
+
+            // Populate employee dropdown with the original employee lists
+            const employeesByDepartment = {
+                "ESI TE": ["Schröder", "Haus", "M.A. Prinz", "Schweitzer", "Hartmann", "Kosolapov", "Müller", "Christoph", "Weber", "Hashemi-Farzad", "M. Rheinfurth", "Schilling"],
+                "ESI TR": ["Hoelemann", "W. Koch", "M. Gross"],
+                "ESI TW": ["Bislimi", "Nasrabadi", "Haak", "M. Rentrop", "Nied", "Köhler", "Wegmann"]
+            };
+
+            const employees = employeesByDepartment[selectedDepartment] || [];
+            employees.forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee;
+                option.textContent = employee;
+                employeeSelect.appendChild(option);
+            });
+
+            // Reset current userData (will be populated when employee is selected)
+            userData = {
+                department: selectedDepartment,
+                employee: "",
+                entries: {},
+                displayMonths: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+                selectedProjects: []
+            };
+
+            // Clear project rows - don't load projects until employee is selected
+            projectRows.innerHTML = '';
+        }
+
+        function handleEmployeeChange() {
+            const selectedEmployee = employeeSelect.value;
+            if (!selectedEmployee) {
+                // Clear project rows if no employee selected
+                projectRows.innerHTML = '';
+                // Hide project selection panel
+                projectSelectionPanel.style.display = 'none';
+                return;
+            }
+
+            // Save current user data before switching
+            saveCurrentUserData();
+
+            // Load data for selected employee
+            loadUserData(userData.department, selectedEmployee);
+
+            // Initialize month checkboxes with user preferences
+            initMonthCheckboxes();
+
+            // Initialize project selection panel
+            populateProjectSelectionPanel();
+
+            // Now load projects since both department and employee are selected
+            loadProjects();
+        }
+
+        // Handle select all button
+        function handleSelectAll() {
+            const department = userData.department;
+            if (!department) return;
+
+            // Get all project IDs for this department
+            userData.selectedProjects = [];
+
+            projectCategories[department].forEach(category => {
+                category.subprojects.forEach(subproject => {
+                    userData.selectedProjects.push(subproject.id);
+                });
+            });
+
+            // Update checkboxes
+            const checkboxes = document.querySelectorAll('.subproject-item input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+
+            // Update badges
+            projectCategories[department].forEach((category, index) => {
+                const badge = document.querySelector(`.project-category[data-category-index="${index}"] .selected-badge`);
+                if (badge) {
+                    badge.textContent = `${category.subprojects.length}/${category.subprojects.length}`;
+                }
+            });
+
+            // Save user preferences
+            saveCurrentUserData();
+        }
+
+        // Handle clear selection button
+        function handleClearSelection() {
+            // Clear selection
+            userData.selectedProjects = [];
+
+            // Update checkboxes
+            const checkboxes = document.querySelectorAll('.subproject-item input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
+            // Update badges
+            const badges = document.querySelectorAll('.selected-badge');
+            badges.forEach(badge => {
+                const total = badge.textContent.split('/')[1];
+                badge.textContent = `0/${total}`;
+            });
+
+            // Save user preferences
+            saveCurrentUserData();
+        }
+
+        // Handle apply filter button
+        function handleApplyFilter() {
+            // Save user preferences
+            saveCurrentUserData();
+
+            // Reload projects with filter
+            loadProjects();
+        }
+
+        // Modified: Now only shows selected projects by default
+        function loadProjects() {
+            const department = userData.department;
+            const employee = userData.employee;
+
+            // Check that both department and employee are selected
+            if (!department || !employee) {
+                // Clear project rows if either isn't selected
+                projectRows.innerHTML = '';
+                return;
+            }
+
+            // Get all subprojects for this department
+            let allSubprojects = [];
+
+            projectCategories[department].forEach(category => {
+                allSubprojects = [...allSubprojects, ...category.subprojects];
+            });
+
+            // Only show selected projects by default - CHANGED HERE
+            if (userData.selectedProjects.length > 0) {
+                allSubprojects = allSubprojects.filter(subproject =>
+                    userData.selectedProjects.includes(subproject.id)
+                );
+            } else if (!toggleSelectedOnly.checked) {
+                // If no projects selected and toggle not checked, keep all projects
+                // but we're not showing any by default now
+                allSubprojects = [];
+            } else {
+                // Nothing selected and toggle is checked, show nothing
+                allSubprojects = [];
+            }
+
+            projectRows.innerHTML = '';
+
+            // First, update the header with months
+            updateTableHeader();
+
+            // Then load project rows
+            allSubprojects.forEach(project => {
+                const row = document.createElement('tr');
+                row.dataset.projectId = project.id;
+
+                // Add visible indicator for selected projects
+                if (userData.selectedProjects.includes(project.id)) {
+                    row.classList.add('selected-project');
+                }
+
+                // Use global budget used instead of calculating from userData
+                let totalCostUsed = globalProjectBudgets[project.id]?.used || 0;
+
+                const remainingBudget = project.budget - totalCostUsed;
+                const budgetPercentage = (totalCostUsed / project.budget) * 100;
+
+                let budgetClass = '';
+                if (budgetPercentage >= 90) budgetClass = 'danger';
+                else if (budgetPercentage >= 75) budgetClass = 'warning';
+
+                // Create base cells
+                let rowHtml = `
+                    <td>${project.name}</td>
+                    <td>€${project.budget.toLocaleString()}</td>
+                    <td class="${budgetClass}">
+                        €${remainingBudget.toLocaleString()}
+                        <div class="budget-meter">
+                            <div class="budget-fill ${budgetClass}" style="width: ${budgetPercentage}%"></div>
+                        </div>
+                    </td>
+                `;
+
+                // Add cells for each selected month
+                userData.displayMonths.forEach(monthIndex => {
+                    const entryKey = `${project.id}-${monthIndex}`;
+                    const savedEntry = userData.entries[entryKey] || { hours: 0, cost: 0 };
+
+                    // If this is the active month, make it editable
+                    const isActiveMonth = parseInt(activeMonthSelect.value) === monthIndex;
+
+                    if (isActiveMonth) {
+                        rowHtml += `
+                            <td>
+                                <input type="number" class="hour-input" value="${savedEntry.hours}" 
+                                    min="0" max="999" step="0.5" data-project-id="${project.id}" data-month="${monthIndex}"
+                                    onchange="handleHourInput(event)" onkeyup="handleHourInput(event)">
+                            </td>
+                            <td class="cost-cell" data-month="${monthIndex}">€${savedEntry.cost.toLocaleString()}</td>
+                        `;
+                    } else {
+                        rowHtml += `
+                            <td>${savedEntry.hours}</td>
+                            <td>€${savedEntry.cost.toLocaleString()}</td>
+                        `;
+                    }
+                });
+
+                row.innerHTML = rowHtml;
+                projectRows.appendChild(row);
+            });
+
+            // Add event listeners to hour inputs
+            const hourInputs = document.querySelectorAll('.hour-input');
+            hourInputs.forEach(input => {
+                input.addEventListener('input', handleHourInput);
+            });
+
+            updateTotalHours();
+        }
+
+        function updateTableHeader() {
+            // Start with base columns
+            let headerRow = `
+                <tr>
+                    <th style="min-width: 300px;">Project</th>
+                    <th>Budget</th>
+                    <th>Remaining</th>
+            `;
+
+            // Add month columns
+            userData.displayMonths.forEach(monthIndex => {
+                headerRow += `
+                    <th colspan="2">${monthNames[monthIndex]}</th>
+                `;
+            });
+
+            headerRow += `</tr>`;
+
+            // Add subheader for hours and costs
+            let subHeaderRow = `
+                <tr>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+            `;
+
+            userData.displayMonths.forEach(() => {
+                subHeaderRow += `
+                    <th>Hours</th>
+                    <th>Cost (€)</th>
+                `;
+            });
+
+            subHeaderRow += `</tr>`;
+
+            timesheetHeader.innerHTML = headerRow + subHeaderRow;
+        }
+
+        function handleHourInput(event) {
+            const input = event.target;
+            const hours = parseFloat(input.value) || 0;
+            const projectId = input.dataset.projectId;
+            const monthIndex = input.dataset.month;
+            const cost = hours * HOURLY_RATE;
+
+            // Get the previous entry if any
+            const entryKey = `${projectId}-${monthIndex}`;
+            const previousEntry = userData.entries[entryKey] || { hours: 0, cost: 0 };
+
+            // Calculate the cost difference
+            const costDifference = cost - previousEntry.cost;
+
+            // Update cost cell
+            const row = input.closest('tr');
+            const costCell = row.querySelector(`.cost-cell[data-month="${monthIndex}"]`);
+            costCell.textContent = `€${cost.toLocaleString()}`;
+
+            // Save to userData for THIS employee only
+            userData.entries[entryKey] = { hours, cost };
+
+            // Update global project budget
+            if (globalProjectBudgets[projectId]) {
+                globalProjectBudgets[projectId].used += costDifference;
+            }
+
+            // Save to global storage
+            saveCurrentUserData();
+            saveGlobalBudgets();
+
+            // Recalculate remaining budget
+            updateRemainingBudget(projectId, row);
+
+            // Update total hours
+            updateTotalHours();
+        }
+
+        function updateRemainingBudget(projectId, row) {
+            // Find project by ID
+            let project = null;
+
+            // Search through all categories
+            const department = userData.department;
+            projectCategories[department].forEach(category => {
+                const found = category.subprojects.find(p => p.id === projectId);
+                if (found) project = found;
+            });
+
+            if (!project) return;
+
+            // Use global budget used instead of calculating from userData
+            let totalCostUsed = globalProjectBudgets[projectId]?.used || 0;
+
+            const remainingBudget = project.budget - totalCostUsed;
+            const budgetPercentage = (totalCostUsed / project.budget) * 100;
+
+            // Update remaining budget cell
+            const remainingCell = row.querySelector('td:nth-child(3)');
+            remainingCell.textContent = `€${remainingBudget.toLocaleString()}`;
+
+            // Add budget meter
+            const budgetMeter = document.createElement('div');
+            budgetMeter.className = 'budget-meter';
+
+            const budgetFill = document.createElement('div');
+            budgetFill.className = 'budget-fill';
+            budgetFill.style.width = `${budgetPercentage}%`;
+
+            // Add warning/danger classes
+            remainingCell.classList.remove('warning', 'danger');
+            budgetFill.classList.remove('warning', 'danger');
+
+            if (budgetPercentage >= 90) {
+                remainingCell.classList.add('danger');
+                budgetFill.classList.add('danger');
+            } else if (budgetPercentage >= 75) {
+                remainingCell.classList.add('warning');
+                budgetFill.classList.add('warning');
+            }
+
+            budgetMeter.appendChild(budgetFill);
+            remainingCell.appendChild(budgetMeter);
+
+            // If over budget, mark row
+            if (remainingBudget < 0) {
+                row.classList.add('danger');
+            } else {
+                row.classList.remove('danger');
+            }
+        }
+
+        function updateTotalHours() {
+            const activeMonthValue = activeMonthSelect.value;
+            let totalHours = 0;
+
+            // Sum hours for the active month
+            for (const key in userData.entries) {
+                if (key.endsWith(`-${activeMonthValue}`)) {
+                    totalHours += userData.entries[key].hours || 0;
+                }
+            }
+
+            totalHoursElement.textContent = totalHours.toFixed(1);
+
+            // Update progress bar
+            const hourPercentage = (totalHours / TARGET_MONTHLY_HOURS) * 100;
+            hoursFillElement.style.width = `${Math.min(hourPercentage, 100)}%`;
+
+            // Update color based on target
+            hoursFillElement.classList.remove('budget-success', 'budget-warning', 'budget-danger');
+
+            if (totalHours >= TARGET_MONTHLY_HOURS) {
+                hoursFillElement.classList.add('budget-success');
+            } else if (totalHours >= TARGET_MONTHLY_HOURS * 0.75) {
+                hoursFillElement.classList.add('budget-warning');
+            } else {
+                hoursFillElement.classList.add('budget-danger');
+            }
+        }
+
+        function handleActiveMonthChange() {
+            const selectedMonth = activeMonthSelect.value;
+            currentMonthDisplay.textContent = monthNames[selectedMonth];
+
+            // Reload projects to update editable cells for the active month
+            loadProjects();
+        }
+
+        function handleSubmitTimesheet() {
+            const department = document.getElementById("department").value;
+            const employee = document.getElementById("employee").value;
+            const currentMonth = parseInt(document.getElementById("active-month").value);
+            const currentMonthName = monthNames[currentMonth];
+
+            // Get table data
+            const rows = document.querySelectorAll("tbody tr");
+            const tableData = [];
+
+            rows.forEach(row => {
+                const projectName = row.querySelector("td:first-child").textContent;
+                const budget = row.querySelector("td:nth-child(2)").textContent;
+                const remaining = row.querySelector("td:nth-child(3)").textContent;
+                
+                // Find hours and cost cells for current month
+                const hourInput = row.querySelector(`input[data-month="${currentMonth}"]`);
+                const costCell = row.querySelector(`.cost-cell[data-month="${currentMonth}"]`);
+                
+                if (hourInput && costCell) {
+                    const hours = hourInput.value;
+                    const cost = costCell.textContent;
+                    
+                    // Only add to tableData if hours are entered
+                    if (hours && parseFloat(hours) > 0) {
+                        tableData.push({
+                            "Project": projectName,
+                            "Budget": budget,
+                            "Remaining": remaining,
+                            "Month": currentMonthName,
+                            "Hours": hours,
+                            "Cost": cost
+                        });
+                    }
+                }
+            });
+
+            // Only send if there's data to send
+            if (tableData.length > 0) {
+                const payload = {
+                    department,
+                    employee,
+                    table: tableData
+                };
+
+                fetch("/submit", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                }).then(res => {
+                    if (res.ok) {
+                        alert("Timesheet submitted successfully!");
+                    } else {
+                        alert("Error submitting timesheet.");
+                    }
+                }).catch(err => {
+                    console.error(err);
+                    alert("Network error");
+                });
+            } else {
+                alert("No hours entered for the current month. Please enter hours before submitting.");
+            }
+        }
+
+        // New function to update global budgets from all users' data
+        function updateGlobalBudgetsFromAllUsers(currentMonth) {
+            // Reset all used amounts to 0
+            Object.keys(globalProjectBudgets).forEach(projectId => {
+                globalProjectBudgets[projectId].used = 0;
+            });
+
+            // Calculate total costs from all users
+            Object.values(allUserData).forEach(user => {
+                Object.entries(user.entries).forEach(([entryKey, entry]) => {
+                    // Extract projectId from entryKey (format: "projectId-monthIndex")
+                    const projectId = entryKey.split('-')[0];
+
+                    if (globalProjectBudgets[projectId]) {
+                        globalProjectBudgets[projectId].used += entry.cost || 0;
+                    }
+                });
+            });
+        }
+
+        // Proper initialization function that checks both department and employee
+        function initOnPageLoad() {
+            try {
+                // First load global budgets
+                loadGlobalBudgets();
+
+                const savedAllData = localStorage.getItem('allTimesheetData');
+                if (savedAllData) {
+                    allUserData = JSON.parse(savedAllData);
+
+                    // Ensure global budgets are up-to-date with all user data
+                    updateGlobalBudgetsFromAllUsers(currentMonth);
+                    saveGlobalBudgets();
+
+                    // Check for any department/employee selection
+                    const savedDepartment = departmentSelect.value;
+                    if (savedDepartment) {
+                        // If department was already selected in the UI (e.g. on page refresh)
+                        handleDepartmentChange();
+
+                        const savedEmployee = employeeSelect.value;
+                        if (savedEmployee) {
+                            // Load this employee's data
+                            loadUserData(savedDepartment, savedEmployee);
+
+                            // Initialize project selection panel
+                            populateProjectSelectionPanel();
+
+                            // Set toggle to checked by default so we only show selected projects
+                            toggleSelectedOnly.checked = true;
+
+                            // Only now load the projects
+                            loadProjects();
+                        }
+                    }
+                } else {
+                    // Set toggle to checked by default so we only show selected projects
+                    toggleSelectedOnly.checked = true;
+                }
+            } catch (e) {
+                console.error('Error loading saved data:', e);
+                // Set toggle to checked by default even if there was an error
+                toggleSelectedOnly.checked = true;
+            }
+        }
+
+        // Call this function instead of directly calling loadProjects()
+        initOnPageLoad();
+    </script>
+</body>
+
+</html>
