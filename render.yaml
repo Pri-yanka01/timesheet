@@ -1,11 +1,8 @@
 services:
   - type: web
     name: timesheet-backend
-    env: java
-    buildCommand: mvn clean install
-    startCommand: java -jar target/timesheet-0.0.1-SNAPSHOT.jar
+    env: docker
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: PORT
-        value: 8080
-      - key: JAVA_VERSION
-        value: 17 
+        value: 8080 

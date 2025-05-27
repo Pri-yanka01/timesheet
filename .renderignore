@@ -1,0 +1,6 @@
+README.md
+.git/
+.vscode/
+*.md
+.DS_Store
+timesheet.xlsx 
